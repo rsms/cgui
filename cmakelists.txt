@@ -1,0 +1,190 @@
+cmake_minimum_required(VERSION 3.12)
+project(cgui  VERSION 0.1.0  LANGUAGES C CXX OBJCXX)
+
+# if (NOT DEFINED ENV{CKIT_DIR})
+#   set(ENV{CKIT_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/ext/ckit)
+# endif()
+# include($ENV{CKIT_DIR}/ckit.cmake)
+include(ext/ckit/ckit.cmake)
+ckit_configure_project(C)
+ckit_require_package(rbase)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_C_STANDARD 11)
+
+set(CIMGUI_DIR ext/cimgui)
+set(IMGUI_DIR ext/cimgui/imgui)
+set(STB_DIR ext/stb)
+# set(IMGUI_BACKEND "glfw-metal")
+# set(IMGUI_BACKEND "glfw-gl2")
+set(IMGUI_BACKEND "glfw-gl3")
+# set(IMGUI_BACKEND "apple")
+
+set(GUI_LIBS
+  rbase
+  c++
+)
+
+set(APP_SOURCES
+  # src/main.c
+  src/gui.cc
+  src/font_inter_medium.h
+  ${CIMGUI_DIR}/cimgui.cpp
+  ${IMGUI_DIR}/imgui.cpp
+  ${IMGUI_DIR}/imgui_demo.cpp
+  ${IMGUI_DIR}/imgui_draw.cpp
+  ${IMGUI_DIR}/imgui_tables.cpp
+  ${IMGUI_DIR}/imgui_widgets.cpp
+  # ${IMGUI_DIR}/misc/freetype/imgui_freetype.cpp + add_definitions("-DCIMGUI_FREETYPE=1")
+)
+
+# glfw
+if (IMGUI_BACKEND MATCHES "glfw")
+  # TODO: figure out how to build glfw as a subdirectory.
+  # Currently it does not build this way and when patches are applied to the code
+  # to fix issues like type mismatch from e.g. calloc, the built lib does not
+  # contain the expected symbols.
+  # set(GLFW_BUILD_EXAMPLES OFF)
+  # set(GLFW_BUILD_TESTS OFF)
+  # set(GLFW_BUILD_DOCS OFF)
+  # set(GLFW_INSTALL OFF)
+  # add_subdirectory(ext/glfw glfw EXCLUDE_FROM_ALL)
+
+  add_custom_command(
+    OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/glfw/src/libglfw3.a
+    DEPENDS
+      ${CMAKE_CURRENT_SOURCE_DIR}/ext/glfw/CMakeLists.txt
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ext/glfw
+    VERBATIM
+    COMMAND
+      mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/glfw &&
+      cmake -S .
+            -B ${CMAKE_CURRENT_BINARY_DIR}/glfw
+            -G Ninja
+            -DGLFW_BUILD_EXAMPLES=OFF
+            -DGLFW_BUILD_TESTS=OFF
+            -DGLFW_BUILD_DOCS=OFF
+            -DGLFW_INSTALL=OFF
+            &&
+      ninja -C ${CMAKE_CURRENT_BINARY_DIR}/glfw
+    USES_TERMINAL
+  )
+
+  add_custom_target(glfw_trigger ALL
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/glfw/src/libglfw3.a
+    VERBATIM
+  )
+endif()
+
+
+if (APPLE)
+  set(GUI_LIBS ${GUI_LIBS}
+    "-framework Cocoa"
+    "-framework IOKit"
+    "-framework CoreVideo"
+    "-framework QuartzCore"
+  )
+endif()
+
+
+if (IMGUI_BACKEND STREQUAL "glfw-metal")
+  set(APP_SOURCES ${APP_SOURCES}
+    src/app_glfw_metal.mm
+    ${IMGUI_DIR}/backends/imgui_impl_metal.mm
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+  )
+  set(GUI_LIBS ${GUI_LIBS}
+    # glfw
+    ${CMAKE_CURRENT_BINARY_DIR}/glfw/src/libglfw3.a
+    "-framework Metal"
+    "-framework MetalKit"
+  )
+elseif (IMGUI_BACKEND STREQUAL "glfw-gl2")
+  set(APP_SOURCES ${APP_SOURCES}
+    src/app_glfw_gl2.cc
+    ${IMGUI_DIR}/backends/imgui_impl_opengl2.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+  )
+  set(GUI_LIBS ${GUI_LIBS}
+    # glfw
+    ${CMAKE_CURRENT_BINARY_DIR}/glfw/src/libglfw3.a
+    "-framework OpenGL"
+  )
+elseif (IMGUI_BACKEND STREQUAL "glfw-gl3")
+  set(APP_SOURCES ${APP_SOURCES}
+    # src/app_glfw_gl3.cc
+    src/gui_glfw_gl3.cc
+    ext/glad-core-gl4.1/src/glad.c
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+  )
+  set(GUI_LIBS ${GUI_LIBS}
+    # glfw
+    ${CMAKE_CURRENT_BINARY_DIR}/glfw/src/libglfw3.a
+    "-framework OpenGL"
+  )
+else()  # "apple"
+  set(APP_SOURCES ${APP_SOURCES}
+    src/app_macos_ios.mm
+    ${IMGUI_DIR}/backends/imgui_impl_metal.mm
+    ${IMGUI_DIR}/backends/imgui_impl_osx.mm
+  )
+  set(GUI_LIBS ${GUI_LIBS}
+    "-framework Metal"
+    "-framework MetalKit"
+  )
+endif()
+
+# add_executable(${PROJECT_NAME} ${APP_SOURCES})
+add_library(${PROJECT_NAME} ${APP_SOURCES})
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+  $<$<COMPILE_LANGUAGE:C>:-std=c11>
+  $<$<COMPILE_LANGUAGE:CXX>:-std=c++14>
+  $<$<COMPILE_LANGUAGE:OBJC>:-std=c11 -fobjc-weak -fobjc-arc>
+  $<$<COMPILE_LANGUAGE:OBJCXX>:-std=c++14 -fobjc-weak -fobjc-arc>
+)
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+  IMGUI_DISABLE_OBSOLETE_FUNCTIONS=1
+)
+target_include_directories(${PROJECT_NAME}
+  PRIVATE
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
+    ${STB_DIR}
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CIMGUI_DIR}
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${GUI_LIBS})
+
+if (IMGUI_BACKEND MATCHES "-gl3")
+  target_compile_definitions(${PROJECT_NAME} PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD=1)
+  target_include_directories(${PROJECT_NAME} PUBLIC ext/glad-core-gl4.1/include)
+endif()
+
+if (IMGUI_BACKEND MATCHES "glfw")
+  target_compile_definitions(${PROJECT_NAME} PUBLIC GUI_WITH_GLFW=1)
+  target_include_directories(${PROJECT_NAME} PUBLIC ext/glfw/include)
+endif()
+
+# ckit_define_test(${PROJECT_NAME})
+
+
+add_executable(binary_to_compressed_c ${IMGUI_DIR}/misc/fonts/binary_to_compressed_c.cpp)
+
+macro(gui_compress_file input output)
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${output}
+    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/binary_to_compressed_c
+      ${CMAKE_CURRENT_SOURCE_DIR}/${input}
+      inter_medium > ${CMAKE_CURRENT_SOURCE_DIR}/${output}
+    DEPENDS
+      binary_to_compressed_c
+      ${CMAKE_CURRENT_SOURCE_DIR}/${input}
+    VERBATIM
+  )
+endmacro()
+
+gui_compress_file(misc/Inter-Medium.otf src/font_inter_medium.h)

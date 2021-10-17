@@ -40,8 +40,8 @@ EXTERN void gui_start(gui_t* g); // entry; implemented by app
 EXTERN double gui_monotime();   // seconds
 
 EXTERN void gui_win_set_title(gui_win_t* win, const char* title);
-EXTERN void gui_win_set_pos(gui_win_t* win, u32 x_dp, u32 y_dp);
-EXTERN void gui_win_set_size(gui_win_t* win, u32 width_dp, u32 height_dp);
+EXTERN void gui_win_set_pos(gui_win_t* win, uint32_t x_dp, uint32_t y_dp);
+EXTERN void gui_win_set_size(gui_win_t* win, uint32_t width_dp, uint32_t height_dp);
 
 // comp - actual components (i.e. 4=RGBA, 3=RGB, 1=Greyscale)
 // req_comp - expected components

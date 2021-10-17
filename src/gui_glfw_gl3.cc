@@ -129,13 +129,17 @@ void gui_win_set_title(gui_win_t* win, const char* title) {
 
 void gui_win_set_pos(gui_win_t* win, u32 x_dp, u32 y_dp) {
   GLFWwindow* window = AS_GLFWwindow(win);
-  glfwSetWindowPos(window, x_dp, y_dp);
+  assert(x_dp <= 0x7fffffff);
+  assert(y_dp <= 0x7fffffff);
+  glfwSetWindowPos(window, (int)x_dp, (int)y_dp);
 }
 
 
 void gui_win_set_size(gui_win_t* win, u32 width_dp, u32 height_dp) {
   GLFWwindow* window = AS_GLFWwindow(win);
-  glfwSetWindowSize(window, width_dp, height_dp);
+  assert(width_dp <= 0x7fffffff);
+  assert(height_dp <= 0x7fffffff);
+  glfwSetWindowSize(window, (int)width_dp, (int)height_dp);
 }
 
 

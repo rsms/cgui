@@ -58,7 +58,7 @@ static void _gui_load_fonts(gui_t* g) {
   // // dlog("inter_medium->IsLoaded() => %d", inter_medium->IsLoaded());
 
   ImFontConfig* font_cfg = NULL;
-  ImWchar* glyph_ranges = NULL;
+  ImWchar glyph_ranges[] = { 0x20, 0xffff, 0 };
   ImFont* inter_medium = io.Fonts->AddFontFromMemoryCompressedTTF(
     inter_medium_compressed_data,
     inter_medium_compressed_size,

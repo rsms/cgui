@@ -1,4 +1,3 @@
-// File: '/Users/rsms/src/cgui/misc/Inter-Medium.otf' (269692 bytes)
 // Exported using binary_to_compressed_c.cpp
 static const unsigned int inter_medium_compressed_size = 195816;
 static const unsigned int inter_medium_compressed_data[195816/4] =

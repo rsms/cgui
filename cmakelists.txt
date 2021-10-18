@@ -177,9 +177,12 @@ add_executable(binary_to_compressed_c ${IMGUI_DIR}/misc/fonts/binary_to_compress
 macro(gui_compress_file input output)
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${output}
-    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/binary_to_compressed_c
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND
+      sh ${CMAKE_CURRENT_SOURCE_DIR}/misc/compress_font.sh
       ${CMAKE_CURRENT_SOURCE_DIR}/${input}
-      inter_medium > ${CMAKE_CURRENT_SOURCE_DIR}/${output}
+      inter_medium
+      ${CMAKE_CURRENT_SOURCE_DIR}/${output}
     DEPENDS
       binary_to_compressed_c
       ${CMAKE_CURRENT_SOURCE_DIR}/${input}
